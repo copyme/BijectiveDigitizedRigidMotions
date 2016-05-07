@@ -269,7 +269,7 @@ Output:
   non-injective.
 
 *)
-IntersectionSetLatticesNonInjective[p_, q_, set_] := Module[{a, b, c, FI, MI, nonInj, s, k, j},
+IntersectionSetLatticesNonInjective[p_, q_, set_] := Module[{a, b, c, FI, MI, nonInj, s, k, j, coeffs},
    TestPythagoreanTripleGenerators[p, q];
    b = 2 * p * q; a = p^2 - q^2; c = p^2 + q^2;
    coeffs = BezoutCoefficients[p, q];
