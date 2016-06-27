@@ -66,7 +66,7 @@
 (* :Limitations: 
 
   For this moment this package supports only some particular generators of primitive Pythagorean
-  triples. Also translation is not supported.
+  triples.
 
 *)
 
@@ -77,29 +77,46 @@ GetNonInjectiveRegion::usage = "GetNonInjectiveRegion[index, p, q] returns Recta
 GetNonSurjectiveRegion::usage = "GetNonSurjectiveRegion[index, p, q] returns Rectange[]";
 FindGroupMembersInRegions::usage = "FindGroupMembersInRegions[p, q, F] returns a set of integer
 points";
-IntersectionSetLatticesNonInjective::usage = "IntersectionSetLatticesNonInjective[p, q, set] returns
+IntersectionSetLatticesNonInjective::usage = "IntersectionSetLatticesNonInjective[p, q, t, set] returns
 subset of the set.";
-IntersectionSetLatticesNonSurjective::usage = "IntersectionSetLatticesNonSurjective[p, q, set] returns
+IntersectionSetLatticesNonSurjective::usage = "IntersectionSetLatticesNonSurjective[p, q, t, set] returns
 subset of the set.";
 
 Begin["`Private`"]
 
 (*
 
-Procedure: GetNonInjectiveFrame
+Procedure: TestPythagoreanTripleGenerators
 
 Summary:
   This procedure tests if generators of primitive Pythagorean triple are correct. If not it throws
   exceptions.
 
 Parameters:
-  p -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1.
-  q -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1.
+  p -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1
+  q -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1
 
 *)
 TestPythagoreanTripleGenerators[p_, q_] := (
-  If[index < 1 || index > 4, Throw["Frame index out of the range:[1,4]"]];
   If[GCD[p, q] != 1 || EvenQ[p - q], Throw["Pythagorean rotation generates are incorrect!"]];
+)
+
+
+(*
+
+Procedure: TestTranslationVector
+
+Summary:
+  This procedure tests if translation vector is valid.
+
+Parameters:
+  t -- 2D vector with rational elements
+
+*)
+TestTranslationVector[t_] := (
+   If[Length[t] != 2, Throw["Translation vector has wrong dimension!"]]; 
+   If[NotElement[Head[t[[1]]], {Rational, Integer}] || NotElement[Head[t[[2]]], {Rational,
+   Integer}], Throw["Translation vector has irrational elements!"]];
 )
 
 (*
@@ -184,11 +201,13 @@ Output:
   A set of integer points.
 
 *)
-FindGroupMembersInRegions[p_, q_, F_] := Module[{c, s},
+FindGroupMembersInRegions[p_, q_, t_, F_] := Module[{c, s, tt},
   TestPythagoreanTripleGenerators[p, q];
-   c = p^2 + q^2;
-   s = Solve[({p/c, q/c}*u + {-q/c, p/c}*v) \[Element] F, {u, v}, Integers]; 
-   Return[Transpose[{s[[All, 1, 2]], s[[All, 2, 2]]}]];
+  TestTranslationVector[t];
+  tt = t - Round[t];
+  c = p^2 + q^2;
+  s = Solve[({p/c, q/c}*u + {-q/c, p/c}*v) + tt \[Element] F, {u, v}, Integers]; 
+  Return[Transpose[{s[[All, 1, 2]], s[[All, 2, 2]]}]];
 ]; (* end of FindGroupMembersInRegions *)
 
 
@@ -262,6 +281,7 @@ Summary:
 Parameters:
   p -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1.
   q -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1.
+  t -- 2D translation vector
   set -- a rectangular region.
 
 Output:
@@ -269,17 +289,20 @@ Output:
   non-injective.
 
 *)
-IntersectionSetLatticesNonInjective[p_, q_, set_] := Module[{a, b, c, FI, MI, nonInj, s, k, j, coeffs},
+IntersectionSetLatticesNonInjective[p_, q_, t_, set_] := Module[{a, b, c, tt, FI, MI, nonInj, s, k,
+   j, coeffs},
    TestPythagoreanTripleGenerators[p, q];
+   TestTranslationVector[t];
+   tt = t - Round[t];
    b = 2 * p * q; a = p^2 - q^2; c = p^2 + q^2;
    coeffs = BezoutCoefficients[p, q];
    FI = { GetNonInjectiveRegion[1, p, q], GetNonInjectiveRegion[2, p, q],
           GetNonInjectiveRegion[3, p, q], GetNonInjectiveRegion[4, p, q] };
    MI = {};
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[1]]]];
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[2]]]];
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[3]]]];
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[4]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[1]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[2]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[3]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[4]]]];
    nonInj = {};
    Do[
       s = Solve[( k * p * ( coeffs[[1]][[1]] - coeffs[[1]][[2]] ) / 2 +  x * {a, -b} + c * y *
@@ -304,6 +327,7 @@ Summary:
 Parameters:
   p -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1.
   q -- generator of primitive Pythagorean triple such that p - q is odd and gcd of p and q is 1.
+  t -- 2D translation vector
   set -- a rectangular region.
 
 Output:
@@ -311,17 +335,20 @@ Output:
   space exist non-surjective points.
 
 *)
-IntersectionSetLatticesNonSurjective[p_, q_, set_] := Module[{a, b, c, FI, MI, nonInj, s, k, j},
+IntersectionSetLatticesNonSurjective[p_, q_, t_, set_] := Module[{a, b, c, tt, FI, MI, coeffs,
+  nonInj, s, k, j},
    TestPythagoreanTripleGenerators[p, q];
+   TestTranslationVector[t];
+   tt = t - Round[t];
    b = 2 * p * q; a = p^2 - q^2; c = p^2 + q^2;
    coeffs = BezoutCoefficients[p, q];
    FI = { GetNonSurjectiveRegion[1, p, q], GetNonSurjectiveRegion[2, p, q],
           GetNonSurjectiveRegion[3, p, q], GetNonSurjectiveRegion[4, p, q] };
    MI = {};
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[1]]]];
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[2]]]];
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[3]]]];
-   MI = Join[MI, FindGroupMembersInRegions[p, q, FI[[4]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[1]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[2]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[3]]]];
+   MI = Join[MI, FindGroupMembersInRegions[p, q, t, FI[[4]]]];
    nonInj = {};
    Do[
       s = Solve[( k * p * ( coeffs[[1]][[1]] - coeffs[[1]][[2]] ) / 2 +  x * {a, -b} + c * y *
