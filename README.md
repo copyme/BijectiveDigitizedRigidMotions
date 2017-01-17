@@ -47,3 +47,11 @@ Additional information
 
 The algorithms were implemented in Mathematica 10, therefore, Mathematica 10 or higher is required.
 
+How to cite
+================
+Any result obtained with the official release should be cited while using a DOI number. The DOI number of the newest release is:
+
+[![DOI](https://zenodo.org/badge/56094355.svg)](https://zenodo.org/badge/latestdoi/56094355)
+
+
+
