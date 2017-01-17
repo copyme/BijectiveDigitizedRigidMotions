@@ -184,7 +184,7 @@ Output:
   A non-injective region of a given index.
 
 *)
-CheckInjectivity[p_, q_, t_, set_] := Module[{xp, B, F1, F2, ParallelAppendTo},
+CheckInjectivity[p_, q_, t_, set_] := Module[{xp, B, F1, F2},
   B = {};
   F1 = GetNonInjectiveRegion[1, p, q];
   F2 = GetNonInjectiveRegion[2, p, q];
