@@ -39,7 +39,7 @@ To check if a 3D digitized rotation given by a Lipschitz quaternion is bijective
 
 ```
 Needs["QuaternionCertification`"];
-IntersectionSetLatticesNonInjectiveCertifyQuaternion[{3,0,0,1}]
+CertifyQuaternion[{3,0,0,1}]
 ```
 
 Additional information
