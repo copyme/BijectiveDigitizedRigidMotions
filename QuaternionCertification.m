@@ -152,8 +152,8 @@ CertifyQuaternion[q_] := Module[ {p, pp, cube1, cube2, bounds, y, h, i, j, k, pi
   Do[
      y = {h, i, j, k};
      (*If zero the y times q goes to R^3*)
-     If[ h * q[[1]] - i * q[[2]] - j * q[[3]] - k * q[[4]] != 0, Continue[]];
-     pivot47 = HermiteDecomposition[ SystemAB[q[[1]], q[[2]], q[[3]], q[[4]], y[[1]], y[[2]], y[[3]],
+     If[ h * p[[1]] - i * p[[2]] - j * p[[3]] - k * p[[4]] != 0, Continue[]];
+     pivot47 = HermiteDecomposition[ SystemAB[p[[1]], p[[2]], p[[3]], p[[4]], y[[1]], y[[2]], y[[3]],
                                               y[[4]]]][[2]][[4]][[7]]; 
      (*System has solution iff the last pivot is zero.*)
      If[y \[NotElement] cube1 || pivot47 != 0, Continue[]];
