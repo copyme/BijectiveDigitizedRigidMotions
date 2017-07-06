@@ -128,13 +128,13 @@ Output:
 *)
 GetNonInjectiveRegion[index_, angle_] := (
   (*up*)
-  If[index == 1, Return[Rectangle[{Sin[angle] - 1/2, -1/2}, {1/2, 1/2 - Cos[angle]}]]];
+  If[index == 1, Return[Rectangle[{N[Sin[angle] - 1/2, $MaxExtraPrecision], -1/2}, {1/2, N[1/2 - Cos[angle], $MaxExtraPrecision]}]]];
   (*right*)
-  If[index == 2, Return[Rectangle[{-1/2, -1/2}, {1/2 - Cos[angle], 1/2 - Sin[angle]}]]];
+  If[index == 2, Return[Rectangle[{-1/2, -1/2}, {1/2 - N[Cos[angle], $MaxExtraPrecision], N[1/2 - Sin[angle], $MaxExtraPrecision]}]]];
   (*down*)
-  If[index == 3, Return[Rectangle[{-1/2, Cos[angle] - 1/2}, {1/2 - Sin[angle], 1/2}]]];
+  If[index == 3, Return[Rectangle[{-1/2, N[Cos[angle] - 1/2, $MaxExtraPrecision]}, {N[1/2 - Sin[angle], $MaxExtraPrecision], 1/2}]]];
   (*left*)
-  If[index == 4, Return[Rectangle[{Cos[angle] - 1/2, Sin[angle] - 1/2}, {1/2, 1/2}]]]
+  If[index == 4, Return[Rectangle[{N[Cos[angle] - 1/2, $MaxExtraPrecision], N[Sin[angle] - 1/2, $MaxExtraPrecision]}, {1/2, 1/2}]]]
 ); (* end of GetNonInjectiveRegion *)
 
 
@@ -158,7 +158,7 @@ RemainderMap[angle_, t_, x_] := Module[{U},
   TestTranslationVector[t];
   TestTranslationVector[x];
   U = RotationMatrix[angle].x + t;
-  Return[U - Floor[U + {1/2, 1/2}]];
+  Return[U - Floor[N[U + {1/2, 1/2}, $MaxExtraPrecision]]];
 ];
 
 
@@ -208,13 +208,18 @@ Parameters:
   h -- 4D vector with integer elements. The format is {p_1, p_2, k, s}.
 
 *)
-TestHingeAngle[h_] := (
-  If[Length[h] != 4, Throw["The hinge angle is given in inccrect form: wrong length!"]];
-  If[DeleteDuplicates[Head /@ h] != {Integer}, 
-    Throw["The hinge angle is given in inccrect form: non-integer elements!"]
-  ];
-)
-
+TestHingeAngle[h_, t_] := Module[{l},
+ TestTranslationVector[t];
+ If[Length[h] != 4, Throw["The hinge angle is given in incorrect form: wrong length!"]];
+ If[DeleteDuplicates[Head /@ h] != {Integer}, 
+    Throw["The hinge angle is given in incorrect form: non-integer elements!"]
+ ];
+ If[h[[4]] == 1,
+  l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];,
+  l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
+ ];
+ If[Im[l] != 0, Throw["The angle is not valid: a half-grid index is too high!"];];
+];
 
 (*
 
@@ -232,20 +237,19 @@ Comments:
   It can throw an exception if some parameters are not valid!
 
 Output:
-  True if the Pythagorean angle is bigger than the hinge angle and false otherwise. 
+  1 if the Pythagorean angle is bigger than the hinge angle and 0 otherwise. 
 *)
 CompareHingePythagorean[h_, p_, t_] := Module[{u, s, l},
-   TestHingeAngle[h]; TestTranslationVector[t];
-   If[h[[4]] == 1,
-    s = p[[3]] h[[2]] ((2 h[[3]] + 1) Denominator[t[[2]]] - 2 Numerator[t[[2]]]) - 2 p[[1]] Denominator[t[[2]]] (h[[1]]^2 + h[[2]]^2);
-    l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
-    u = -2 p[[3]] l h[[1]] Denominator[t[[2]]];,
-    s = p[[3]] h[[1]] ((2 h[[3]] + 1) Denominator[t[[1]]] - 2 Numerator[t[[1]]]) - 2 p[[1]] Denominator[t[[1]]] (h[[1]]^2 + h[[2]]^2);
-    l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
-    u = -2 p[[3]] l h[[1]] Denominator[t[[1]]];
-   ];
-   If[Im[l] != 0, Throw["On the hinge angle is not valid: a half-grid index is too high!"];];
-   If[NonNegative[s], Return[True], Return[TrueQ[s^2 < u^2]];];
+ TestTranslationVector[t]; TestHingeAngle[h, t]; 
+ If[h[[4]] == 1,
+  s = p[[3]] h[[2]] ((2 h[[3]] + 1) Denominator[t[[2]]] - 2 Numerator[t[[2]]]) - 2 p[[1]] Denominator[t[[2]]] (h[[1]]^2 + h[[2]]^2);
+  l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
+  u = -2 p[[3]] l h[[1]] Denominator[t[[2]]];,
+  s = p[[3]] h[[1]] ((2 h[[3]] + 1) Denominator[t[[1]]] - 2 Numerator[t[[1]]]) - 2 p[[1]] Denominator[t[[1]]] (h[[1]]^2 + h[[2]]^2);
+  l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
+  u = -2 p[[3]] l h[[1]] Denominator[t[[1]]];
+ ];
+ If[NonNegative[s], Return[1], Return[Boole[TrueQ[s^2 < u^2]]];];
 ];
 
 
@@ -265,61 +269,61 @@ Comments:
   It can throw an exception if some parameters are not valid!
 
 Output:
-  True if the second angle is bigger than the first one and false otherwise. 
+  1 if the second angle is bigger than the first one and 0 otherwise. When two angles are equal then
+  0 is returned.
 *)
 CompareHingeHinge[h_, g_, t_] := Module[{A, B, C, D, l, ll, den},
-   TestHingeAngle[h]; TestHingeAngle[g]; TestTranslationVector[t];
-   If[h == g, Throw["The angles are the same!"];];
-   (*Set the variales with respect to the critical lines*)
-   
-   If[h[[4]] == 1 && g[[4]] == 1,
-    A = (g[[1]]^2 + g[[2]]^2) h[[2]] (2 h[[3]] - t[[2]] + 1);
-    B = (h[[1]]^2 + h[[2]]^2) g[[2]] (2 g[[3]] - t[[2]] + 1);
-    C = (h[[1]]^2 + h[[2]]^2) g[[1]];
-    D = (g[[1]]^2 + g[[2]]^2) h[[1]];
-    l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
-    ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[2]] + 1/2)^2];
-    den = Denominator[t[[2]]];
-   ];
-   If[h[[4]] == 0 && g[[4]] == 1,
-    A = (g[[1]]^2 + g[[2]]^2) h[[1]] (2 h[[3]] - t[[1]] + 1);
-    B = (h[[1]]^2 + h[[2]]^2) g[[2]] (2 g[[3]] - t[[2]] + 1);
-    C = (h[[1]]^2 + h[[2]]^2) g[[1]];
-    D = (g[[1]]^2 + g[[2]]^2) h[[2]];
-    l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
-    ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[2]] + 1/2)^2];
-    den = Denominator[t[[2]]] * Denominator[t[[1]]];
-   ];
-   If[h[[4]] == 1 && g[[4]] == 0,
-    A = (g[[1]]^2 + g[[2]]^2) h[[2]] (2 h[[3]] - t[[2]] + 1);
-    B = (h[[1]]^2 + h[[2]]^2) g[[1]] (2 g[[3]] - t[[1]] + 1);
-    C = (h[[1]]^2 + h[[2]]^2) g[[2]];
-    D = (g[[1]]^2 + g[[2]]^2) h[[1]];
-    l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
-    ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[1]] + 1/2)^2];
-    den = Denominator[t[[2]]] * Denominator[t[[1]]];
-   ];
-   If[h[[4]] == 0 && g[[4]] == 0,
-    A = (g[[1]]^2 + g[[2]]^2) h[[1]] (2 h[[3]] - t[[1]] + 1);
-    B = (h[[1]]^2 + h[[2]]^2) g[[1]] (2 g[[3]] - t[[1]] + 1);
-    C = (h[[1]]^2 + h[[2]]^2) g[[2]];
-    D = (g[[1]]^2 + g[[2]]^2) h[[2]];
-    l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
-    ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[1]] + 1/2)^2];
-    den = Denominator[t[[1]]];
-   ];
-   If[Im[l] != 0 || Im[ll] != 0, Print[h, ", ", g]; Throw["On of the angles is not valid: a half-grid index is too high!"];];
-   If[Positive[den (A - B)] && Negative[2 den (C ll - D l)], Return[True];];
-   If[Negative[den (A - B)] && Positive[2 den (C ll - D l)], Return[False];];
-   If[Positive[den (A - B)] && Positive[2 den (C ll - D l)],
-   If[Positive[den^2 (A - B)^2 - 4 den^2 (D^2 l^2 + C^2 ll^2)], 
-     Return[True],
-     Return[TrueQ[(den^2 (A - B)^2 - 4 den^2 (D^2 l^2 + C^2 ll^2))^2 < 64 den^4 C^2 D^2 l^2 ll^2]];];
-   ];
-   If[Negative[den (A - B)] && Negative[2 den (C ll - D l)],
-   If[Positive[4 den^2 (C ll - D l)^2 - den^2 (A^2 + B^2)], 
-     Return[True], Return[TrueQ[4 den^4 A^2 B^2 > den^4 (4 (C ll - D l)^2 - (A^2 + B^2))^2]];];
-   ];
+ TestTranslationVector[t]; TestHingeAngle[h, t]; TestHingeAngle[g, t]; 
+ If[h == g, Return[-1];];
+ (*Set the variates differ with respect to the critical lines*)
+  If[h[[4]] == 1 && g[[4]] == 1,
+   A = (g[[1]]^2 + g[[2]]^2) h[[2]] (2 h[[3]] - t[[2]] + 1);
+   B = (h[[1]]^2 + h[[2]]^2) g[[2]] (2 g[[3]] - t[[2]] + 1);
+   C = (h[[1]]^2 + h[[2]]^2) g[[1]];
+   D = (g[[1]]^2 + g[[2]]^2) h[[1]];
+   l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
+   ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[2]] + 1/2)^2];
+   den = Denominator[t[[2]]];
+  ];
+  If[h[[4]] == 0 && g[[4]] == 1,
+   A = (g[[1]]^2 + g[[2]]^2) h[[1]] (2 h[[3]] - t[[1]] + 1);
+   B = (h[[1]]^2 + h[[2]]^2) g[[2]] (2 g[[3]] - t[[2]] + 1);
+   C = (h[[1]]^2 + h[[2]]^2) g[[1]];
+   D = (g[[1]]^2 + g[[2]]^2) h[[2]];
+   l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
+   ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[2]] + 1/2)^2];
+   den = Denominator[t[[2]]] * Denominator[t[[1]]];
+  ];
+  If[h[[4]] == 1 && g[[4]] == 0,
+   A = (g[[1]]^2 + g[[2]]^2) h[[2]] (2 h[[3]] - t[[2]] + 1);
+   B = (h[[1]]^2 + h[[2]]^2) g[[1]] (2 g[[3]] - t[[1]] + 1);
+   C = (h[[1]]^2 + h[[2]]^2) g[[2]];
+   D = (g[[1]]^2 + g[[2]]^2) h[[1]];
+   l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
+   ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[1]] + 1/2)^2];
+   den = Denominator[t[[2]]] * Denominator[t[[1]]];
+  ];
+  If[h[[4]] == 0 && g[[4]] == 0,
+   A = (g[[1]]^2 + g[[2]]^2) h[[1]] (2 h[[3]] - t[[1]] + 1);
+   B = (h[[1]]^2 + h[[2]]^2) g[[1]] (2 g[[3]] - t[[1]] + 1);
+   C = (h[[1]]^2 + h[[2]]^2) g[[2]];
+   D = (g[[1]]^2 + g[[2]]^2) h[[2]];
+   l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
+   ll = Sqrt[g[[1]]^2 + g[[2]]^2 - (g[[3]] - t[[1]] + 1/2)^2];
+   den = Denominator[t[[1]]];
+  ];
+  If[Sign[den (A - B)] == 0 && Sign[2 den (C ll - D l)] == 0, Return[-1];];
+  If[Positive[den (A - B)] && Negative[2 den (C ll - D l)], Return[1];];
+  If[Negative[den (A - B)] && Positive[2 den (C ll - D l)], Return[0];];
+  If[Positive[den (A - B)] && Positive[2 den (C ll - D l)],
+  If[Positive[den^2 (A - B)^2 - 4 den^2 (D^2 l^2 + C^2 ll^2)], 
+   Return[1],
+   Return[Boole[TrueQ[(den^2 (A - B)^2 - 4 den^2 (D^2 l^2 + C^2 ll^2))^2 < 64 den^4 C^2 D^2 l^2 ll^2]]];];
+  ];
+  If[Negative[den (A - B)] && Negative[2 den (C ll - D l)],
+  If[Positive[4 den^2 (C ll - D l)^2 - den^2 (A^2 + B^2)], 
+   Return[1], Return[Boole[TrueQ[4 den^4 A^2 B^2 > den^4 (4 (C ll - D l)^2 - (A^2 + B^2))^2]]];];
+  ];
 ]; (* end of CompareHingeHinge *)
 
 
@@ -366,13 +370,11 @@ Output:
   True if the Pythagorean angle is bigger than the hinge angle and false otherwise. 
 *)
 HingeCos[h_, t_] := Module[{l},
- TestTranslationVector[t]; TestHingeAngle[h];
+ TestTranslationVector[t]; TestHingeAngle[h, t];
  If[h[[4]] == 1, 
   l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[2]] + 1/2)^2];
-  If[Im[l] != 0, Throw["The angle is not valid: a half-grid index is too high!"];];
   Return[(h[[1]] l + h[[2]] (h[[3]] - t[[2]] + 1/2))/(h[[1]]^2 + h[[2]]^2)];,
   l = Sqrt[h[[1]]^2 + h[[2]]^2 - (h[[3]] - t[[1]] + 1/2)^2];
-  If[Im[l] != 0, Throw["The angle is not valid: a half-grid index is too high!"];];
   Return[(h[[2]] l + h[[1]] (h[[3]] - t[[1]] + 1/2))/(h[[1]]^2 + h[[2]]^2)];
  ];
 ];
@@ -393,35 +395,36 @@ Parameters:
 Output:
   The closest upper hinge angle 
 *)
-ClosestUpperHinge[p_, angle_, t_] := Module[{x},
+ClosestUpperHinge[p_, angle_, t_] := Module[{x, h, g, res},
  TestTranslationVector[t];
  If[Length[angle] == 3,
-  x = Floor[RotationMatrix[ArcCos[angle[[1]]/angle[[3]]]].p + t + {1/2, 1/2}];,
-  x = Floor[RotationMatrix[ArcCos[HingeCos[angle, t]]].p + t + {1/2, 1/2}];
- ];
- Print[x];
+  x = Floor[N[RotationMatrix[ArcCos[angle[[1]]/angle[[3]]]].p + t + {1/2, 1/2}, $MaxExtraPrecision]];,
+  x = Floor[N[RotationMatrix[ArcCos[HingeCos[angle, t]]].p + t + {1/2, 1/2}, $MaxExtraPrecision]];
+ ]; 
  If[x[[1]] > 0 && x[[2]] >= 0,
-  If[CompareHingeHinge[{p[[1]], p[[2]], x[[1]] - 1, 0}, {p[[1]], p[[2]], x[[2]], 1}, t],
-   Return[{p[[1]], p[[2]], x[[1]] - 1, 0}];, Return[{p[[1]], p[[2]], x[[2]], 1}];
-  ];
+  h = {p[[1]], p[[2]], x[[1]] - 1, 0}; 
+  g = {p[[1]], p[[2]], x[[2]], 1};
  ];
  If[x[[1]] <= 0 && x[[2]] > 0,
-  If[CompareHingeHinge[{p[[1]], p[[2]], x[[1]] - 1, 0}, {p[[1]], p[[2]], x[[2]] - 1, 1}, t],
-   Return[{p[[1]], p[[2]], x[[1]] - 1, 0}];, Return[{p[[1]], p[[2]], x[[2]] - 1, 1}];
-  ];
+  h = {p[[1]], p[[2]], x[[1]] - 1, 0};
+  g = {p[[1]], p[[2]], x[[2]] - 1, 1};
  ];
  If[x[[1]] < 0 && x[[2]] <= 0,
-  If[CompareHingeHinge[{p[[1]], p[[2]], x[[1]], 0}, {p[[1]], p[[2]], x[[2]] - 1, 1}, t],
-   Return[{p[[1]], p[[2]], x[[1]], 0}];, Return[{p[[1]], p[[2]], x[[2]] - 1, 1}];
-  ];
+  h = {p[[1]], p[[2]], x[[1]], 0}; 
+  g = {p[[1]], p[[2]], x[[2]] - 1, 1};
  ];
  If[x[[1]] >= 0 && x[[2]] < 0,
-  If[CompareHingeHinge[{p[[1]], p[[2]], x[[1]], 0}, {p[[1]], p[[2]], x[[2]], 1}, t],
-   Return[{p[[1]], p[[2]], x[[1]], 0}];, Return[{p[[1]], p[[2]], x[[2]], 1}];
-  ];
+  h = {p[[1]], p[[2]], x[[1]], 0};
+  g = {p[[1]], p[[2]], x[[2]], 1};
  ];
+ If[Head[Catch[TestHingeAngle[h, t]]] == String && Head[Catch[TestHingeAngle[g, t]]] == Symbol, Return[g];];
+ If[Head[Catch[TestHingeAngle[h, t]]] == Symbol && Head[Catch[TestHingeAngle[g, t]]] == String, Return[h];];
+ If[Head[Catch[TestHingeAngle[h, t]]] == String && Head[Catch[TestHingeAngle[g, t]]] == String, 
+  Throw["Both hinge angles are not valid!"]];
+ res = CompareHingeHinge[h, g, t];
+ If[res == -1, Return[h]];
+ If[res == 1, Return[h];, Return[g];];
 ];
-
 
 
 (*
@@ -442,9 +445,7 @@ Output:
 *)
 CompareAngles[h_, g_, t_] := (
  TestTranslationVector[t];
- If[Length[g] == 3,
-  Return[CompareHingePythagorean[h, g, t]];, Return[CompareHingeHinge[h, g, t]];
- ];  
+ If[Length[g] == 3, Return[CompareHingePythagorean[h, g, t]];, Return[CompareHingeHinge[h, g, t]];];  
 );
 
 
@@ -465,31 +466,31 @@ Output:
 *)
 ReduceHingeSet[B_, gl_, gu_, t_] := Module[{tmp},
  tmp = {};
- Do[If[!CompareAngle[x, gl, t] && CompareAngle[x, gu, t], AppendTo[tmp, x]]; ,{x, B}];
+ Do[If[CompareAngles[x, gl, t] == 0 && CompareAngles[x, gu, t] == 1, AppendTo[tmp, x]]; ,{x, B}];
  Return[tmp];
 ];
 
 
-CheckInjectivityRange[p_, q_, t_, set_] := Module[{F1, F2, B, a, b, c, gl, gu, alpha},
+CheckInjectivityRange[p_, q_, t_, set_] := Module[{xp, F1, F2, B, a, b, c, gl, gu, alpha, angle},
  TestPythagoreanTripleGenerators[p, q]; TestTranslationVector[t];
  a = 2 p q; b = p^2 - q^2; c = p^2 + q^2;
  B = {}; gl = {1, 1, 1}; gu = {0, 1, 1};
  Do[
-  Print[x];
   If[Length[CheckInjectivity[p, q, t, Get4Neighborhod[set, x]]] != 0, Return[{}]]; 
-   alpha = ClosestUpperHinge[x, {a, b, c}, t];
-   While[!CompareAngle[alpha, gl, t] && CompareAngle[alpha, gu, t], 
-    xp = RemainderMap[alpha, t, x];
-    F1 = GetNonInjectiveRegion[1, alpha]; F2 = GetNonInjectiveRegion[2, alpha];
+   alpha = Catch[ClosestUpperHinge[x, {a, b, c}, t]];
+   If[Head[alpha] == String, Continue[]];
+   While[CompareAngles[alpha, gl, t] == 0 && CompareAngles[alpha, gu, t] == 1, 
+    angle = ArcCos[HingeCos[alpha, t]]; xp = N[RemainderMap[angle, t, x], $MaxExtraPrecision];
+    F1 = GetNonInjectiveRegion[1, angle]; F2 = GetNonInjectiveRegion[2, angle];
     If[(xp \[Element] F1 && MemberQ[set, x + {0,1}]) || (xp \[Element] F2 && MemberQ[set, x + {1,0}]), 
-     gl = alpha;, AppendTo[B, alpha]; alpha = ClosestUpperHinge[x, alpha, t];
+     gu = alpha;, AppendTo[B, alpha]; alpha = ClosestUpperHinge[x, alpha, t];
     ];
    ];
   B = ReduceHingeSet[B, gl, gu, t];
+  Print[B];
  , {x, set}];
  Return[B];
 ];
-
 
 End[]
 EndPackage[]
