@@ -128,13 +128,13 @@ Output:
 *)
 GetNonInjectiveRegion[index_, angle_] := (
   (*up*)
-  If[index == 1, Return[Rectangle[{N[Sin[angle] - 1/2, $MaxExtraPrecision], -1/2}, {1/2, N[1/2 - Cos[angle], $MaxExtraPrecision]}]]];
+  If[index == 1, Return[Rectangle[{Sin[angle] - 1/2, -1/2}, {1/2, 1/2 - Cos[angle]}]]];
   (*right*)
-  If[index == 2, Return[Rectangle[{-1/2, -1/2}, {1/2 - N[Cos[angle], $MaxExtraPrecision], N[1/2 - Sin[angle], $MaxExtraPrecision]}]]];
+  If[index == 2, Return[Rectangle[{-1/2, -1/2}, {1/2 - Cos[angle], 1/2 - Sin[angle]}]]];
   (*down*)
-  If[index == 3, Return[Rectangle[{-1/2, N[Cos[angle] - 1/2, $MaxExtraPrecision]}, {N[1/2 - Sin[angle], $MaxExtraPrecision], 1/2}]]];
+  If[index == 3, Return[Rectangle[{-1/2, Cos[angle] - 1/2}, {1/2 - Sin[angle], 1/2}]]];
   (*left*)
-  If[index == 4, Return[Rectangle[{N[Cos[angle] - 1/2, $MaxExtraPrecision], N[Sin[angle] - 1/2, $MaxExtraPrecision]}, {1/2, 1/2}]]]
+  If[index == 4, Return[Rectangle[{Cos[angle] - 1/2, Sin[angle] - 1/2}, {1/2, 1/2}]]]
 ); (* end of GetNonInjectiveRegion *)
 
 
@@ -153,12 +153,14 @@ Parameters:
 Output:
   A non-injective region of a given index.
 
+Comment: 
+  The call of FullSimplify is due to a bug in Floor
 *)
 RemainderMap[angle_, t_, x_] := Module[{U},
   TestTranslationVector[t];
   TestTranslationVector[x];
   U = RotationMatrix[angle].x + t;
-  Return[U - Floor[N[U + {1/2, 1/2}, $MaxExtraPrecision]]];
+  Return[U - Round[FullSimplify[U]]];
 ];
 
 
@@ -313,8 +315,8 @@ CompareHingeHinge[h_, g_, t_] := Module[{A, B, C, D, l, ll, den},
    den = Denominator[t[[1]]];
   ];
   If[Sign[den (A - B)] == 0 && Sign[2 den (C ll - D l)] == 0, Return[-1];];
-  If[Positive[den (A - B)] && Negative[2 den (C ll - D l)], Return[1];];
-  If[Negative[den (A - B)] && Positive[2 den (C ll - D l)], Return[0];];
+  If[NonNegative[den (A - B)] && Negative[2 den (C ll - D l)], Return[1];];
+  If[Negative[den (A - B)] && NonNegative[2 den (C ll - D l)], Return[0];];
   If[Positive[den (A - B)] && Positive[2 den (C ll - D l)],
   If[Positive[den^2 (A - B)^2 - 4 den^2 (D^2 l^2 + C^2 ll^2)], 
    Return[1],
@@ -394,12 +396,15 @@ Parameters:
 
 Output:
   The closest upper hinge angle 
+
+Comment: 
+  The call of FullSimplify is due to a bug in Floor
 *)
 ClosestUpperHinge[p_, angle_, t_] := Module[{x, h, g, res},
  TestTranslationVector[t];
  If[Length[angle] == 3,
-  x = Floor[N[RotationMatrix[ArcCos[angle[[1]]/angle[[3]]]].p + t + {1/2, 1/2}, $MaxExtraPrecision]];,
-  x = Floor[N[RotationMatrix[ArcCos[HingeCos[angle, t]]].p + t + {1/2, 1/2}, $MaxExtraPrecision]];
+  x = Round[FullSimplify[RotationMatrix[ArcCos[angle[[1]]/angle[[3]]]].p + t]];,
+  x = Round[FullSimplify[RotationMatrix[ArcCos[HingeCos[angle, t]]].p + t]];
  ]; 
  If[x[[1]] > 0 && x[[2]] >= 0,
   h = {p[[1]], p[[2]], x[[1]] - 1, 0}; 
@@ -417,13 +422,18 @@ ClosestUpperHinge[p_, angle_, t_] := Module[{x, h, g, res},
   h = {p[[1]], p[[2]], x[[1]], 0};
   g = {p[[1]], p[[2]], x[[2]], 1};
  ];
+ Print[x, ", ", p, ", ", h, ", ", g, ", ", angle];
  If[Head[Catch[TestHingeAngle[h, t]]] == String && Head[Catch[TestHingeAngle[g, t]]] == Symbol, Return[g];];
  If[Head[Catch[TestHingeAngle[h, t]]] == Symbol && Head[Catch[TestHingeAngle[g, t]]] == String, Return[h];];
  If[Head[Catch[TestHingeAngle[h, t]]] == String && Head[Catch[TestHingeAngle[g, t]]] == String, 
   Throw["Both hinge angles are not valid!"]];
  res = CompareHingeHinge[h, g, t];
- If[res == -1, Return[h]];
- If[res == 1, Return[h];, Return[g];];
+ Print["res ", res];
+ If[res == -1, Print["1"]; Return[h]];
+ If[CompareAngles[h, angle, t] == -1, Print["2"]; Return[g];];
+ If[CompareAngles[g, angle, t] == -1, Print["3"]; Return[h];];
+ If[res == 1,Print["4"]; Return[h];];
+ If[res == 0,Print["5"]; Return[g];];
 ];
 
 
@@ -474,20 +484,21 @@ ReduceHingeSet[B_, gl_, gu_, t_] := Module[{tmp},
 CheckInjectivityRange[p_, q_, t_, set_] := Module[{xp, F1, F2, B, a, b, c, gl, gu, alpha, angle},
  TestPythagoreanTripleGenerators[p, q]; TestTranslationVector[t];
  a = 2 p q; b = p^2 - q^2; c = p^2 + q^2;
- B = {}; gl = {1, 1, 1}; gu = {0, 1, 1};
+ B = {}; gl = {1, 1, 1}; gu = {21, 20, 29}; (*Around pi/4*)
  Do[
   If[Length[CheckInjectivity[p, q, t, Get4Neighborhod[set, x]]] != 0, Return[{}]]; 
    alpha = Catch[ClosestUpperHinge[x, {a, b, c}, t]];
    If[Head[alpha] == String, Continue[]];
    While[CompareAngles[alpha, gl, t] == 0 && CompareAngles[alpha, gu, t] == 1, 
-    angle = ArcCos[HingeCos[alpha, t]]; xp = N[RemainderMap[angle, t, x], $MaxExtraPrecision];
+    angle = ArcCos[HingeCos[alpha, t]]; xp = RemainderMap[angle, t, x];
     F1 = GetNonInjectiveRegion[1, angle]; F2 = GetNonInjectiveRegion[2, angle];
     If[(xp \[Element] F1 && MemberQ[set, x + {0,1}]) || (xp \[Element] F2 && MemberQ[set, x + {1,0}]), 
-     gu = alpha;, AppendTo[B, alpha]; alpha = ClosestUpperHinge[x, alpha, t];
+     gu = alpha; Print["gu ", gu];, AppendTo[B, alpha]; Print["B ",B]; Print["before ", alpha]; alpha = ClosestUpperHinge[x, alpha, t];
+     Print["after ", alpha];
     ];
    ];
+   Print["this is ", B];
   B = ReduceHingeSet[B, gl, gu, t];
-  Print[B];
  , {x, set}];
  Return[B];
 ];
