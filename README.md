@@ -32,6 +32,7 @@ using BackwardAlgorithm:
 
 ```
 Needs["BackwardAlgorithm`"];
+S = Rectangle[{-10, -10}, {10, 10}];
 IntersectionSetLatticesNonInjective[3, 4, {1/3, 1/2}, S]
 ```
 
