@@ -24,7 +24,7 @@ while using ForwardAlgorithm:
 
 ```
 Needs["ForwardAlgorithm`"];
-CheckInjectivity[3, 4, {1/3, 1/2}, S]
+CheckInjectivity[4, 1, {1/3, 1/2}, S]
 ```
 
 To check if a 2D digitized rigid motion is bijective while restricted to a finite digital set S while
@@ -33,7 +33,7 @@ using BackwardAlgorithm:
 ```
 Needs["BackwardAlgorithm`"];
 S = Rectangle[{-10, -10}, {10, 10}];
-IntersectionSetLatticesNonInjective[3, 4, {1/3, 1/2}, S]
+IntersectionSetLatticesNonInjective[4, 1, {1/3, 1/2}, S]
 ```
 
 To check if a 3D digitized rotation given by a Lipschitz quaternion is bijective:

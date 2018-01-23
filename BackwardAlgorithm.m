@@ -227,9 +227,9 @@ BezoutCoefficients[p_, q_] := Module[{a, b, c, first, second},
   b = 2*p*q; a = p^2 - q^2; c = p^2 + q^2; n = c;
   first = ExtendedGCD[p^2, q^2][[2]];
   second = ExtendedGCD[a, b][[2]];
-  While[EvenQ[first[[1]]] || EvenQ[first[[2]]], 
+  If[EvenQ[first[[1]]] || EvenQ[first[[2]]], 
     first[[1]] = first[[1]] + q^2;
-    first[[2]] = first[[2]] - p^2
+    first[[2]] = first[[2]] - p^2;
   ];
   Return[{first, second}];
 ]; (* end of BezoutCoefficients *)
